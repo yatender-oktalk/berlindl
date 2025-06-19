@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interaktive Vorbereitung für die Fahrprüfung</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chosen Palette: Serene Study -->
+  <!-- Application Structure Plan: The application is structured as a single-page app with a main navigation bar to switch between three core views: "Lernkarten" (Flashcards), "Technische Fragen" (Technical Questions), and "Alle Phrasen" (All Phrases). This task-oriented structure was chosen for usability, allowing the user to focus on specific learning modes (interactive practice, detailed review, or quick lookup) rather than scrolling through a long, static document. The flashcard system promotes active recall, a more effective learning strategy than passive reading. The accordion for technical questions breaks down complex information into manageable chunks, reducing cognitive load. -->
+  <!-- Visualization & Content Choices: Report Info: Basic commands, in-drive phrases, clarification phrases. -> Goal: Active learning & memorization. -> Viz/Presentation: Interactive Flashcards. -> Interaction: User clicks to "flip" the card to see the answer and navigates between cards in a "deck". -> Justification: Proven, engaging method for language learning. -> Library/Method: Vanilla JS & Tailwind CSS. Report Info: Detailed technical checks (tires, lights, etc.). -> Goal: Organized review and study. -> Viz/Presentation: Accordion-style checklist. -> Interaction: User clicks a category header to expand/collapse the detailed content. -> Justification: Organizes complex information neatly and allows focused study on one system at a time. -> Library/Method: Vanilla JS & Tailwind CSS. CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+  <style>
+    .card-inner {
+      transform-style: preserve-3d;
+      transition: transform 0.6s;
+    }
+
+    .card.is-flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .accordion-content.open {
+      max-height: 1000px;
+      /* Adjust as needed */
+      transition: max-height 0.5s ease-in;
+    }
+
+    .nav-btn.active {
+      background-color: #3b82f6;
+      /* bg-blue-500 */
+      color: white;
+    }
+
+    .nav-btn {
+      transition: background-color 0.2s, color 0.2s;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans">
+  <div id="app" class="container mx-auto p-4 sm:p-6 md:p-8 max-w-5xl">
+    <header class="text-center mb-8">
+      <h1 class="text-3xl sm:text-4xl font-bold text-slate-900">Vorbereitung für die praktische Fahrprüfung</h1>
+      <p class="text-slate-600 mt-2">Ihr interaktiver Lernhelfer für alle wichtigen Phrasen und technischen Fragen.</p>
+    </header>
+
+    <nav class="flex justify-center bg-white p-2 rounded-xl shadow-md mb-8">
+      <button data-view="lernkarten"
+        class="nav-btn active text-sm sm:text-base font-semibold py-2 px-4 sm:px-6 rounded-lg">Lernkarten</button>
+      <button data-view="technische-fragen"
+        class="nav-btn text-sm sm:text-base font-semibold py-2 px-4 sm:px-6 rounded-lg">Technische Fragen</button>
+      <button data-view="alle-phrasen"
+        class="nav-btn text-sm sm:text-base font-semibold py-2 px-4 sm:px-6 rounded-lg">Alle Phrasen</button>
+    </nav>
+
+    <main>
+      <!-- View: Lernkarten (Flashcards) -->
+      <div id="view-lernkarten" class="view-content">
+        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+          <h2 class="text-2xl font-bold mb-2">Interaktive Lernkarten</h2>
+          <p class="text-slate-600">Üben Sie die wichtigsten Befehle interaktiv. Wählen Sie eine Kategorie und blättern
+            Sie durch die Karten, um Ihr Wissen zu testen. Die deutsche Phrase steht auf der Vorderseite, die
+            Übersetzung auf der Rückseite.</p>
+        </div>
+
+        <div class="mb-6">
+          <label for="deck-selector" class="block text-sm font-medium text-slate-700 mb-2">Kategorie auswählen:</label>
+          <select id="deck-selector"
+            class="w-full p-2 border border-slate-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            <option value="basic">1. Grundlegende Anweisungen</option>
+            <option value="getting-started">2. Start & Fahrzeugkontrolle</option>
+            <option value="during-drive">3. Während der Fahrt</option>
+            <option value="no-understand">4. Bei Unklarheiten</option>
+          </select>
+        </div>
+
+        <div id="flashcard-container" class="relative">
+          <div id="card" class="card w-full h-64 sm:h-72 perspective-[1000px] cursor-pointer">
+            <div class="card-inner relative w-full h-full">
+              <div id="card-front"
+                class="card-face absolute w-full h-full bg-white rounded-xl shadow-lg flex items-center justify-center p-6 text-center">
+                <p class="text-2xl sm:text-3xl font-semibold"></p>
+              </div>
+              <div id="card-back"
+                class="card-face absolute w-full h-full bg-blue-100 rounded-xl shadow-lg flex flex-col items-center justify-center p-6 text-center">
+                <p class="text-xl sm:text-2xl font-semibold text-blue-800 mb-2"></p>
+                <p class="text-lg text-slate-700"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center mt-6">
+          <button id="prev-card" class="bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold py-2 px-4 rounded-lg">←
+            Zurück</button>
+          <div id="card-counter" class="text-slate-600 font-medium"></div>
+          <button id="next-card" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Weiter
+            →</button>
+        </div>
+      </div>
+
+      <!-- View: Technische Fragen -->
+      <div id="view-technische-fragen" class="view-content hidden">
+        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+          <h2 class="text-2xl font-bold mb-2">Technische Fragen & Fahrzeugkontrolle</h2>
+          <p class="text-slate-600">Vor jeder Prüfung bittet der Prüfer Sie, drei Fahrzeugkomponenten zu überprüfen.
+            Dieser Abschnitt beschreibt die häufigsten technischen Fragen. Klicken Sie auf eine Kategorie, um sie zu
+            erweitern und die erforderlichen Prüfungen und Antworten zu lernen.</p>
+        </div>
+        <div id="accordion-container" class="space-y-3">
+          <!-- Accordion items will be injected here -->
+        </div>
+      </div>
+
+      <!-- View: Alle Phrasen -->
+      <div id="view-alle-phrasen" class="view-content hidden">
+        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+          <h2 class="text-2xl font-bold mb-2">Alle Phrasen im Überblick</h2>
+          <p class="text-slate-600">Nutzen Sie diesen Bereich als schnelles Nachschlagewerk. Alle Phrasen und Fragen
+            sind hier aufgelistet. Verwenden Sie die Suchleiste, um schnell zu finden, was Sie suchen.</p>
+        </div>
+        <input type="text" id="search-box" placeholder="Suche nach einer Phrase..."
+          class="w-full p-3 border border-slate-300 rounded-lg shadow-sm mb-6 focus:ring-blue-500 focus:border-blue-500">
+        <div id="all-phrases-list" class="space-y-2">
+          <!-- Phrase list will be injected here -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const data = {
+      basic: {
+        name: "Grundlegende Anweisungen",
+        cards: [
+          { front: "Rechts abbiegen", back: "Turn right", phonetic: "Rechts ab-bee-gen" },
+          { front: "Links abbiegen", back: "Turn left", phonetic: "Links ab-bee-gen" },
+          { front: "Geradeaus fahren", back: "Drive straight ahead", phonetic: "Ge-ra-de-aus fah-ren" },
+          { front: "An der nächsten Ampel...", back: "At the next traffic light...", phonetic: "An der nayk-sten Am-pel..." },
+          { front: "An der nächsten Kreuzung...", back: "At the next intersection...", phonetic: "An der nayk-sten Kroy-tsung..." },
+          { front: "Bitte anhalten", back: "Please stop", phonetic: "Bit-te an-hal-ten" },
+          { front: "Bitte parken Sie hier", back: "Please park here", phonetic: "Bit-te park-en zee here" },
+          { front: "Einparken (vorwärts/rückwärts)", back: "To park (forwards/backwards)", phonetic: "Ayn-park-en (for-vairts/rook-vairts)" },
+          { front: "Wenden", back: "Turn the car around", phonetic: "Ven-den" },
+          { front: "Folgen Sie der Straße", back: "Follow the road", phonetic: "Fol-gen zee der Shtrah-sse" },
+          { front: "Die nächste Straße links/rechts", back: "The next street left/right", phonetic: "Dee nayk-ste Shtrah-sse links/rechts" },
+        ]
+      },
+      'getting-started': {
+        name: "Start & Fahrzeugkontrolle",
+        cards: [
+          { front: "Stellen Sie bitte den Sitz ein", back: "Please adjust the seat", phonetic: "Shtel-en zee bit-te den zits ayn" },
+          { front: "Stellen Sie die Spiegel ein", back: "Adjust the mirrors", phonetic: "Shtel-en zee dee shpee-gel ayn" },
+          { front: "Bitte anschnallen", back: "Please fasten your seatbelt", phonetic: "Bit-te an-shnal-en" },
+          { front: "Überprüfen Sie die Lichter", back: "Check the lights", phonetic: "Oo-ber-proo-fen zee dee lish-ter" },
+          { front: "Können Sie die Hupe testen?", back: "Can you test the horn?", phonetic: "Kuh-nen zee dee hoo-pe tes-ten?" },
+          { front: "Machen Sie die Warnblinkanlage an", back: "Turn on the hazard lights", phonetic: "Mach-en zee dee varn-blink-an-la-ge an" },
+        ]
+      },
+      'during-drive': {
+        name: "Während der Fahrt",
+        cards: [
+          { front: "Beschleunigen", back: "Accelerate", phonetic: "Be-shloy-ni-gen" },
+          { front: "Langsamer fahren", back: "Drive slower", phonetic: "Lang-za-mer fah-ren" },
+          { front: "Abstand halten", back: "Keep your distance", phonetic: "Ab-shtand hal-ten" },
+          { front: "Den Fahrstreifen wechseln", back: "Change the lane", phonetic: "Den far-shtry-fen vek-seln" },
+          { front: "Vorfahrt gewähren", back: "Give way / Yield", phonetic: "For-fart ge-veh-ren" },
+          { front: "Achten Sie auf die Verkehrszeichen", back: "Pay attention to the traffic signs", phonetic: "Ach-ten zee owf dee fer-kehrs-tsy-chen" },
+          { front: "Gefahrenbremsung", back: "Emergency brake", phonetic: "Ge-fah-ren-brem-sung" },
+          { front: "Auf die Autobahn fahren", back: "Enter the highway (Autobahn)", phonetic: "Owf dee ow-to-bahn fah-ren" },
+          { front: "Die Autobahn verlassen", back: "Exit the highway (Autobahn)", phonetic: "Dee ow-to-bahn fer-las-sen" },
+        ]
+      },
+      'no-understand': {
+        name: "Bei Unklarheiten",
+        cards: [
+          { front: "Entschuldigung, ich habe Sie nicht verstanden.", back: "Excuse me, I didn't understand you.", phonetic: "Ent-shool-di-gung, ish ha-be zee nisht fer-shtan-den." },
+          { front: "Könnten Sie das bitte wiederholen?", back: "Could you please repeat that?", phonetic: "Kuhn-ten zee das bit-te vee-der-ho-len?" },
+          { front: "Langsamer, bitte.", back: "Slower, please.", phonetic: "Lang-za-mer, bit-te." },
+        ]
+      },
+      techQuestions: [
+        {
+          category: "A. Tires (Reifen)",
+          items: [
+            { q: "<strong>Profiltiefe:</strong> Wie tief muss das Profil sein?", a: "<strong>Antwort:</strong> 1,6 mm. Überprüfen mit dem Indikator (TWI) am Reifen." },
+            { q: "<strong>Reifendruck:</strong> Wo stehen die Angaben zum Reifendruck?", a: "<strong>Antwort:</strong> Im Tankdeckel, an der Tür oder in der Betriebsanleitung." }
+          ]
+        },
+        {
+          category: "B. Lighting (Beleuchtung)",
+          items: [
+            { q: "<strong>Standlicht</strong> (Parking light)", a: "Schalter auf Position 1. Keine Kontrollleuchte." },
+            { q: "<strong>Abblendlicht</strong> (Dipped/Low beam)", a: "Schalter auf Position 2. Grüne Kontrollleuchte an." },
+            { q: "<strong>Fernlicht</strong> (High beam)", a: "Hebel vom Lenkrad wegdrücken. Blaue Kontrollleuchte an." },
+            { q: "<strong>Warnblinkanlage</strong> (Hazard lights)", a: "Roter Knopf mit Dreieck. Rote Kontrollleuchte blinkt." },
+            { q: "<strong>Blinker</strong> (Turn signals)", a: "Hebel nach oben (rechts) oder unten (links). Grüne Kontrollleuchten blinken." },
+            { q: "<strong>Bremslichter</strong> (Brake lights)", a: "Zweite Person bitten zu schauen, oder vor einer spiegelnden Fläche prüfen." },
+            { q: "<strong>Nebelschlussleuchte</strong> (Rear fog light)", a: "Lichtschalter herausziehen. Gelbe Kontrollleuchte an." }
+          ]
+        },
+        {
+          category: "C. Fluids & Brakes (Betriebsstoffe & Bremsen)",
+          items: [
+            { q: "<strong>Motorölstand</strong> (Engine oil level)", a: "Ölmessstab ziehen, abwischen, reinstecken, wieder ziehen. Stand muss zwischen MIN/MAX sein." },
+            { q: "<strong>Kühlmittel</strong> (Coolant)", a: "Am Behälter prüfen. Stand muss zwischen MIN/MAX sein." },
+            { q: "<strong>Scheibenwischwasser</strong> (Windshield fluid)", a: "Behälter im Motorraum öffnen und nachfüllen." },
+            { q: "<strong>Betriebsbremse</strong> (Service brake)", a: "Bremspedal treten. Darf sich nicht ganz durchtreten lassen." },
+            { q: "<strong>Feststellbremse</strong> (Parking brake)", a: "Anziehen. Rote Kontrollleuchte an. Anfahrtest machen." }
+          ]
+        },
+        {
+          category: "D. Miscellaneous (Sonstiges)",
+          items: [
+            { q: "<strong>Hupe</strong> (Horn)", a: "Knopf drücken." },
+            { q: "<strong>Warnweste, Warndreieck, Verbandskasten</strong> (Vest, Triangle, First-aid Kit)", a: "Wissen, wo sie im Auto sind." }
+          ]
+        }
+      ]
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const state = {
+        currentView: 'lernkarten',
+        activeDeckKey: 'basic',
+        currentCardIndex: 0,
+      };
+
+      const views = document.querySelectorAll('.view-content');
+      const navButtons = document.querySelectorAll('.nav-btn');
+      const cardElement = document.getElementById('card');
+      const cardFront = document.getElementById('card-front').querySelector('p');
+      const cardBackText = document.getElementById('card-back').querySelector('p:nth-of-type(1)');
+      const cardBackPhonetic = document.getElementById('card-back').querySelector('p:nth-of-type(2)');
+      const prevBtn = document.getElementById('prev-card');
+      const nextBtn = document.getElementById('next-card');
+      const cardCounter = document.getElementById('card-counter');
+      const deckSelector = document.getElementById('deck-selector');
+      const accordionContainer = document.getElementById('accordion-container');
+      const searchBox = document.getElementById('search-box');
+      const allPhrasesList = document.getElementById('all-phrases-list');
+
+      function updateView() {
+        views.forEach(view => {
+          view.classList.toggle('hidden', view.id !== `view-${state.currentView}`);
+        });
+        navButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.view === state.currentView);
+        });
+      }
+
+      function updateFlashcard() {
+        const deck = data[state.activeDeckKey].cards;
+        if (deck.length === 0) return;
+
+        const card = deck[state.currentCardIndex];
+        cardElement.classList.remove('is-flipped');
+
+        setTimeout(() => {
+          cardFront.textContent = card.front;
+          cardBackText.textContent = card.back;
+          cardBackPhonetic.textContent = card.phonetic;
+          cardCounter.textContent = `${state.currentCardIndex + 1} / ${deck.length}`;
+        }, 150);
+      }
+
+      function populateAllPhrases() {
+        allPhrasesList.innerHTML = '';
+        const allDecks = [data.basic, data['getting-started'], data['during-drive'], data['no-understand']];
+        allDecks.forEach(deck => {
+          const header = document.createElement('h3');
+          header.className = 'text-xl font-bold mt-4 mb-2 text-slate-700';
+          header.textContent = deck.name;
+          allPhrasesList.appendChild(header);
+
+          deck.cards.forEach(card => {
+            const item = document.createElement('div');
+            item.className = 'phrase-item bg-white p-3 rounded-lg shadow-sm';
+            item.innerHTML = `<p class="font-semibold text-slate-800">${card.front}</p><p class="text-slate-600">${card.back}</p>`;
+            item.dataset.text = `${card.front.toLowerCase()} ${card.back.toLowerCase()}`;
+            allPhrasesList.appendChild(item);
+          });
+        });
+      }
+
+      function filterPhrases() {
+        const query = searchBox.value.toLowerCase();
+        const items = document.querySelectorAll('.phrase-item');
+        items.forEach(item => {
+          const isVisible = item.dataset.text.includes(query);
+          item.classList.toggle('hidden', !isVisible);
+        });
+      }
+
+      function createAccordion() {
+        data.techQuestions.forEach((group, index) => {
+          const groupEl = document.createElement('div');
+          groupEl.className = 'bg-white rounded-xl shadow-md overflow-hidden';
+
+          const headerEl = document.createElement('div');
+          headerEl.className = 'p-4 cursor-pointer flex justify-between items-center';
+          headerEl.innerHTML = `<h3 class="text-lg font-bold">${group.category}</h3><span class="text-xl font-light transition-transform duration-300 transform">+</span>`;
+
+          const contentEl = document.createElement('div');
+          contentEl.className = 'accordion-content px-4 pb-4';
+
+          const table = document.createElement('table');
+          table.className = 'w-full text-left border-collapse';
+
+          const tbody = document.createElement('tbody');
+          group.items.forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'border-b last:border-b-0 border-slate-200';
+            row.innerHTML = `<td class="py-3 pr-2 text-slate-800">${item.q}</td><td class="py-3 text-slate-600">${item.a}</td>`;
+            tbody.appendChild(row);
+          });
+          table.appendChild(tbody);
+          contentEl.appendChild(table);
+
+          groupEl.appendChild(headerEl);
+          groupEl.appendChild(contentEl);
+
+          accordionContainer.appendChild(groupEl);
+
+          headerEl.addEventListener('click', () => {
+            const isOpen = contentEl.classList.contains('open');
+
+            document.querySelectorAll('.accordion-content.open').forEach(el => {
+              el.classList.remove('open');
+              el.previousElementSibling.querySelector('span').style.transform = 'rotate(0deg)';
+            });
+
+            if (!isOpen) {
+              contentEl.classList.add('open');
+              headerEl.querySelector('span').style.transform = 'rotate(45deg)';
+            }
+          });
+        });
+      }
+
+      navButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.currentView = btn.dataset.view;
+          updateView();
+        });
+      });
+
+      cardElement.addEventListener('click', () => {
+        cardElement.classList.toggle('is-flipped');
+      });
+
+      deckSelector.addEventListener('change', (e) => {
+        state.activeDeckKey = e.target.value;
+        state.currentCardIndex = 0;
+        updateFlashcard();
+      });
+
+      nextBtn.addEventListener('click', () => {
+        const deckSize = data[state.activeDeckKey].cards.length;
+        if (state.currentCardIndex < deckSize - 1) {
+          state.currentCardIndex++;
+          updateFlashcard();
+        }
+      });
+
+      prevBtn.addEventListener('click', () => {
+        if (state.currentCardIndex > 0) {
+          state.currentCardIndex--;
+          updateFlashcard();
+        }
+      });
+
+      searchBox.addEventListener('input', filterPhrases);
+
+      // Initial setup
+      updateView();
+      updateFlashcard();
+      createAccordion();
+      populateAllPhrases();
+    });
+  </script>
+
+</body>
+
+</html>
